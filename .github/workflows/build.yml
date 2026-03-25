@@ -85,7 +85,7 @@ jobs:
 
     # Subir o artefato do kernel para download
     - name: Upload .zip kernel artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v2
       with:
         name: kernel-output
         path: kernel_output.zip
