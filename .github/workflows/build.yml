@@ -15,7 +15,7 @@ jobs:
     steps:
     # Baixando o código fonte do kernel
     - name: Checkout kernel source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v2
 
     # Instalar dependências e Clang correto
     - name: Install dependencies and Clang 12
@@ -85,7 +85,7 @@ jobs:
 
     # Subir o artefato do kernel para download
     - name: Upload .zip kernel artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: kernel-output
         path: kernel_output.zip
