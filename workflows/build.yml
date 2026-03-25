@@ -1,0 +1,91 @@
+name: Build Ginkgo Kernel
+
+on:
+  push:
+    branches:
+      - main  # Ou a branch que você está usando
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    steps:
+    # Baixando o código fonte do kernel
+    - name: Checkout kernel source
+      uses: actions/checkout@v2
+
+    # Instalar dependências e Clang correto
+    - name: Install dependencies and Clang 12
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          gcc-9 \
+          g++-9 \
+          libncurses-dev \
+          bison \
+          flex \
+          libssl-dev \
+          libelf-dev \
+          bc \
+          wget \
+          make \
+          git \
+          clang-12 \
+          llvm-12 \
+          lld-12 \
+          binutils-aarch64-linux-gnu \
+          binutils-arm-linux-gnueabi \
+          gcc-arm-linux-gnueabi \
+          gcc-aarch64-linux-gnu \
+          device-tree-compiler
+
+    # Configurando o Clang como o compilador
+    - name: Set Clang as default compiler
+      run: |
+        export PATH=/usr/bin/clang-12:$PATH
+        export CC=clang
+        export CXX=clang++
+
+    # Configuração do kernel
+    - name: Configure kernel
+      run: |
+        make ARCH=arm64 defconfig  # Ajuste para sua configuração
+
+    # Compilando o kernel com Clang
+    - name: Build kernel with Clang
+      run: |
+        make ARCH=arm64 -j$(nproc) CROSS_COMPILE=aarch64-linux-gnu- CC=clang
+
+    # Construindo as partes de 32 bits, se necessário
+    - name: Build 32-bit part
+      run: |
+        make ARCH=arm defconfig  # Ajuste para sua configuração 32 bits
+        make ARCH=arm -j$(nproc) CROSS_COMPILE=arm-linux-gnueabi- CC=clang
+
+    # Empacotar o kernel e criar .zip para flash
+    - name: Create .zip for flashing
+      run: |
+        # Diretórios de saída
+        mkdir -p kernel_output/boot
+        mkdir -p kernel_output/dtbs
+        mkdir -p kernel_output/modules
+        
+        # Copiar a imagem do kernel, dtbs e outros arquivos para o diretório de saída
+        cp arch/arm64/boot/Image arch/arm64/boot/dts/*.dtb kernel_output/boot/
+        cp arch/arm64/boot/dts/overlays/*.dtb* kernel_output/boot/
+        cp -r modules/* kernel_output/modules/
+        
+        # Empacotando tudo em um arquivo .zip
+        cd kernel_output
+        zip -r ../kernel_output.zip *
+
+    # Subir o artefato do kernel para download
+    - name: Upload .zip kernel artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: kernel-output
+        path: kernel_output.zip
